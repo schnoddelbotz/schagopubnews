@@ -17,7 +17,7 @@ Serverless Cms, Headleass Application, (written in) GO, (to) PUBlish news!
   - https://medium.com/kloeckner-i/ember-and-graphql-8aa15f7a2554
 - ...
 - creates custom schagopubnews serverless/cloudfunction binary / "graphql" API; docker imaged for local use; prod deploy = cfn
-- creates custom schagopubnews emberjs build; docker imaged /w nginx for local use; prod deploy = bucket
+- creates custom schagopubnews emberjs build; docker imaged /w ~~nginx~~ schagopubnews serving static content, too, for local use; prod deploy = bucket
 - ...
 - deploy to bucket
 - deploy to cfn
