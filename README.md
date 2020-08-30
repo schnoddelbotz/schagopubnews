@@ -9,7 +9,7 @@ Serverless Cms, Headleass Application, (written in) GO, (to) PUBlish news!
 
 # schagopubnews compile
 
-- reads a yaml/hcl/json schema for db
+- reads a yaml/hcl/json schema for db; maybe https://graphql.org/learn/schema/ ??
 - writes go code for type-safe firestore access, api endpoints / graphql "knowledge"
 - writes emberjs editor views using generic/provided components
 - ...
