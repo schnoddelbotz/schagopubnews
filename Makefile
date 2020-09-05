@@ -29,20 +29,26 @@ all_docker: clean test docker_image_prod
 release: all_docker docker_image_push
 
 
-test:
+test: $(GO_SOURCES)
 	# golint -set_exit_status ./...
 	go fmt ./...
 	# golint ./...
 	go vet ./...
+	# running tests...
 	go test -ldflags='-w -s $(LDFLAGS)' ./...
+	# trying to build cloud function for test purposes
 	go build cloudfunction.go
+
+serve: $(BINARY)
+	./build/spn serve
 
 coverage: clean
 	PROVIDER=MEMORY go test -coverprofile=coverage.out -coverpkg=./... -ldflags='-w -s $(LDFLAGS)' ./...
 	go tool cover -html=coverage.out
 
-deploy_gcp: test clean
-	gcloud functions deploy Schagopubnews --region=$(GCP_REGION) --runtime=$(GCP_GO_RUNTIME) \
+deploy_gcp: test
+	# TODO: Note CFN Name and executed function CAN differ!
+	gcloud functions deploy SPN --region=$(GCP_REGION) --runtime=$(GCP_GO_RUNTIME) \
  		--trigger-http --allow-unauthenticated --project=$(GCP_PROJECT) \
  		--set-env-vars=SPN_VERSION=$(VERSION),SPN_REGION=$(GCP_REGION),SPN_PROJECT=$(GCP_PROJECT)
 

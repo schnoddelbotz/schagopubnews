@@ -29,7 +29,7 @@ func init() {
 	runtimeEnvironment = handlers.NewEnvironment(runtimeSettings, true)
 }
 
-// CloudVMDocker handles VMCreate, TaskStatus and TaskProgress requests
-func Schagopubnews(w http.ResponseWriter, r *http.Request) {
+// Schagopubnews CloudFunction entrypoint -- serves API requests and the web-ui
+func SPN(w http.ResponseWriter, r *http.Request) {
 	handlers.Schagopubnews(w, r, runtimeEnvironment)
 }
