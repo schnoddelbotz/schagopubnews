@@ -21,12 +21,12 @@ func init() {
 	log.SetFlags(0)
 
 	// import environment vars, using same defaults as CLI
-	googleSettings := settings.ViperToRuntimeSettings(true)
+	runtimeSettings := settings.ViperToRuntimeSettings()
 	log.Printf(`schagopubnews version %s starting in "cloudfunction" mode with env proj=%s/cfn-region=%s`,
-		version, googleSettings.ProjectID, googleSettings.Region)
+		version, runtimeSettings.ProjectID, runtimeSettings.Region)
 
 	// we initialize all clients here, albeit different needs of CFNs. Solve.
-	runtimeEnvironment = handlers.NewEnvironment(googleSettings, true)
+	runtimeEnvironment = handlers.NewEnvironment(runtimeSettings, true)
 }
 
 // CloudVMDocker handles VMCreate, TaskStatus and TaskProgress requests

@@ -12,6 +12,7 @@ type RuntimeSettings struct {
 	Region              string
 	Token               string // access protects the HTTP CFN
 	FireStoreCollection string
+	Port                string
 	Verbose             bool
 }
 
@@ -24,13 +25,15 @@ const (
 	FlagToken = "token"
 	// FlagVerbose is just a bool here
 	FlagVerbose = "verbose"
+	// FlagPort is
+	FlagPort = "port"
 
 	// FireStoreCollection is the name of our firestore collection (static for now)
 	FireStoreCollection = "schagopubnews"
 )
 
 // ViperToRuntimeSettings translates environment variables into a RuntimeSettings struct.
-func ViperToRuntimeSettings(permitEmptyToken bool) RuntimeSettings {
+func ViperToRuntimeSettings() RuntimeSettings {
 	viper.AutomaticEnv()
 	replacer := strings.NewReplacer("-", "_")
 	viper.SetEnvKeyReplacer(replacer)
@@ -39,6 +42,7 @@ func ViperToRuntimeSettings(permitEmptyToken bool) RuntimeSettings {
 		ProjectID:           viper.GetString(FlagProject),
 		Region:              viper.GetString(FlagRegion),
 		Token:               viper.GetString(FlagToken),
+		Port:                viper.GetString(FlagPort),
 		Verbose:             viper.GetBool(FlagVerbose),
 		FireStoreCollection: FireStoreCollection,
 	}
