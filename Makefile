@@ -9,6 +9,7 @@ GO_SOURCES := */*.go */*/*.go
 GCP_GO_RUNTIME := go113
 
 GCP_PROJECT := hacker-playground-254920
+GCP_REGION := europe-west1
 
 build: $(BINARY)
 
@@ -36,9 +37,9 @@ coverage: clean
 	go tool cover -html=coverage.out
 
 deploy_gcp: test clean
-	gcloud functions deploy Schagopubnews --region=europe-west1 --runtime=$(GCP_GO_RUNTIME) \
+	gcloud functions deploy Schagopubnews --region=$(GCP_REGION) --runtime=$(GCP_GO_RUNTIME) \
  		--trigger-http --allow-unauthenticated --project=$(GCP_PROJECT) \
- 		--set-env-vars=SPN_VERSION=$(VERSION)
+ 		--set-env-vars=SPN_VERSION=$(VERSION),SPN_REGION=$(GCP_REGION),SPN_PROJECT=$(GCP_PROJECT)
 
 docker_image: clean
 	docker build -t $(DOCKER_IMAGE):$(VERSION) -t $(DOCKER_IMAGE):latest .

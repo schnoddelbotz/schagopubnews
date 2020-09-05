@@ -23,6 +23,6 @@ expects GOOGLE_APPLICATION_CREDENTIALS for FireStore access.`,
 
 func init() {
 	rootCmd.AddCommand(serveCmd)
-	serveCmd.Flags().StringP(settings.FlagPort, "p", "3000", "HTTP port to serve on")
+	serveCmd.Flags().StringP(settings.FlagPort, "p", "8080", "HTTP port to serve on")
 	_ = viper.BindPFlag(settings.FlagPort, serveCmd.Flags().Lookup("port"))
 }

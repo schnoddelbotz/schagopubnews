@@ -21,3 +21,7 @@ Serverless Cms, Headleass Application, (written in) GO, (to) PUBlish news!
 - ...
 - deploy to bucket
 - deploy to cfn
+
+# ideas
+
+- use CloudRun for SPN producers (e.g. latex output producer ...)
