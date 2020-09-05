@@ -1,17 +1,53 @@
-//go:generate esc -prefix assets/ -pkg assets -o ../assets/assets.go -private ../schagopubnews-ui-dist
+//go:generate esc -prefix ../schagopubnews-ui-dist/ -pkg handlers -o assets.go -private ../schagopubnews-ui-dist
 
 package handlers
 
 import (
 	"fmt"
+	"log"
+
 	//"log"
 	"net/http"
+
 	/*"github.com/schnoddelbotz/schagopubnews/article"
-	"github.com/schnoddelbotz/schagopubnews/cloud"*/)
+	"github.com/schnoddelbotz/schagopubnews/cloud"*/
+
+	)
+
+type server struct {
+
+}
 
 func Schagopubnews(w http.ResponseWriter, r *http.Request, env *Environment) {
 	// action, vmID, targetValue, err := r.URL.Path
 	handleStatusGet(w, env, "my-first-doc")
+}
+
+func Serve(httpPort string) {
+	srv := &server{}
+
+	http.Handle("/assets/", http.FileServer(_escFS(false)))
+
+	http.HandleFunc("/token", srv.tokenHandler)
+	http.HandleFunc("/", srv.indexHandler)
+
+	log.Printf("Starting Server on port %s\n", httpPort)
+	err := http.ListenAndServe(":"+httpPort, nil)
+	if err != nil {
+		log.Fatalf("Could not start server: %s", err)
+	}
+}
+
+func (s *server) indexHandler(w http.ResponseWriter, r *http.Request) {
+	_, err := w.Write(_escFSMustByte(false, "/index.html"))
+	if err != nil {
+		log.Printf("Sending index.html failed: %s", err)
+	}
+}
+
+func (s *server) tokenHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-type", "application/json")
+	fmt.Fprint(w, `{"access_token": "secret token"}`)
 }
 
 func handleStatusGet(w http.ResponseWriter, env *Environment, vmID string) {

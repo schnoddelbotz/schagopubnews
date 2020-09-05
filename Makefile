@@ -5,7 +5,7 @@ VERSION := $(shell git describe --tags | cut -dv -f2)
 DOCKER_IMAGE := schnoddelbotz/schagopubnews
 LDFLAGS := -X github.com/schnoddelbotz/schagopubnews/cmd.AppVersion=$(VERSION) -w
 
-ASSETS := assets/assets.go
+ASSETS := handlers/assets.go
 GO_SOURCES := */*.go */*/*.go $(ASSETS)
 GCP_GO_RUNTIME := go113
 
@@ -18,7 +18,7 @@ $(BINARY): $(GO_SOURCES)
 	# building schagopubnews
 	go build -v -o $(BINARY) -ldflags='-w -s $(LDFLAGS)' ./cli/spn
 
-assets/assets.go:
+$(ASSETS):
 	test -n "$(shell which esc)" || go get -v -u github.com/mjibson/esc
 	go generate handlers/http_handler.go
 

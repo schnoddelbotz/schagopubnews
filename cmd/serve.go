@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/schnoddelbotz/schagopubnews/handlers"
 	"github.com/schnoddelbotz/schagopubnews/settings"
 )
 
@@ -18,6 +19,7 @@ expects GOOGLE_APPLICATION_CREDENTIALS for FireStore access.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		runtimeSettings := settings.ViperToRuntimeSettings()
 		fmt.Printf("serve called, using port : %s", runtimeSettings.Port)
+		handlers.Serve(runtimeSettings.Port)
 	},
 }
 
