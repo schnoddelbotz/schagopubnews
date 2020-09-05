@@ -3,15 +3,16 @@
 package handlers
 
 import (
-	"fmt"
+	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 )
 
 type server struct {
 }
 
-var CFNMux = accessLogHandler(cfnMux())
+var CFNMux = accessLogHandler(serveMux(""))
 
 // Schagopubnews is the CloudFunction entry point for SPN
 func Schagopubnews(w http.ResponseWriter, r *http.Request, env *Environment) {
@@ -22,76 +23,66 @@ func Schagopubnews(w http.ResponseWriter, r *http.Request, env *Environment) {
 // Serve runs the SPN app on a local TCP port
 func Serve(httpPort string) {
 	log.Printf("Starting SPN server on port %s\n", httpPort)
-	LocalServerMux := accessLogHandler(appMux("/SPN"))
+	LocalServerMux := accessLogHandler(serveMux("/SPN")) // accessLogHandler(appMux("/SPN"))
 	err := http.ListenAndServe(":"+httpPort, LocalServerMux)
 	if err != nil {
 		log.Fatalf("Could not start server: %s", err)
 	}
 }
 
-func cfnMux() *http.ServeMux {
+func serveMux(muxPrefix string) *http.ServeMux {
 	srv := &server{}
 	mux := http.NewServeMux()
-	mux.Handle("/assets/" /*http.StripPrefix("/SPN",*/, http.FileServer(_escFS(false))) //)
-	mux.HandleFunc("/token", srv.tokenHandler)
-	mux.HandleFunc("/", srv.indexHandler)
-	return mux
-}
-
-func appMux(docRoot string) *http.ServeMux {
-	srv := &server{}
-	mux := http.NewServeMux()
-	mux.Handle(docRoot+"/assets/", http.StripPrefix("/SPN", http.FileServer(_escFS(false))))
-	mux.HandleFunc(docRoot+"/token", srv.tokenHandler)
-	mux.HandleFunc(docRoot+"/", srv.indexHandler)
-	return mux
-}
-
-func accessLogHandler(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		o := &responseObserver{ResponseWriter: w}
-		h.ServeHTTP(o, r)
-		log.Printf("%q %d %d %q %q",
-			fmt.Sprintf("%s %s %s", r.Method, r.URL, r.Proto),
-			o.status,
-			o.written,
-			r.Referer(),
-			r.UserAgent())
-	})
-}
-
-type responseObserver struct {
-	http.ResponseWriter
-	status      int
-	written     int64
-	wroteHeader bool
-}
-
-func (o *responseObserver) Write(p []byte) (n int, err error) {
-	if !o.wroteHeader {
-		o.WriteHeader(http.StatusOK)
+	if muxPrefix == "" {
+		mux.Handle(muxPrefix+"/assets/", http.FileServer(_escFS(false)))
+	} else {
+		mux.Handle(muxPrefix+"/assets/", http.StripPrefix(muxPrefix, http.FileServer(_escFS(false))))
 	}
-	n, err = o.ResponseWriter.Write(p)
-	o.written += int64(n)
-	return
-}
-
-func (o *responseObserver) WriteHeader(code int) {
-	o.ResponseWriter.WriteHeader(code)
-	if o.wroteHeader {
-		return
-	}
-	o.wroteHeader = true
-	o.status = code
+	mux.HandleFunc(muxPrefix+"/token", srv.tokenHandler)
+	mux.HandleFunc(muxPrefix+"/", srv.indexHandler)
+	return mux
 }
 
 func (s *server) indexHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(_escFSMustByte(false, "/index.html"))
 }
 
+type tokenRequest struct {
+	Username string
+	Password string
+}
+type tokenResponse struct {
+	AccessToken string `json:"access_token,omitempty"`
+	Error       string `json:"error,omitempty"`
+}
+
 func (s *server) tokenHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-type", "application/json")
-	fmt.Fprint(w, `{"access_token": "secret token"}`)
+	w.Header().Set("content-type", "application/json")
+	request := tokenRequest{
+		Username: r.FormValue("username"),
+		Password: r.FormValue("password"),
+	}
+	if request.Username == "undefined" || request.Password == "undefined" ||
+		request.Username == "" || request.Password == "" {
+		http.Error(w, `{"error":"empty credentials"}`, 401)
+		return
+	}
+
+	// verify user/pass, should yield firestore-, bucket-, and spn session tokens
+	if request.Username != "1" || request.Password != "2" {
+		time.Sleep(1 * time.Second)
+		http.Error(w, `{"error":"bad credentials"}`, 401)
+		return
+	}
+	response := tokenResponse{
+		AccessToken: "whatever",
+	}
+
+	responseBody, _ := json.Marshal(response)
+	numBytes, err := w.Write(responseBody)
+	if err != nil {
+		log.Fatalf("Waaaah! Failed sending off %d bytes to client, who will be unhappy for sure: %s", numBytes, err)
+	}
 }
 
 /*
