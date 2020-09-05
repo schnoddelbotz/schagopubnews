@@ -25,3 +25,10 @@ Serverless Cms, Headleass Application, (written in) GO, (to) PUBlish news!
 # ideas
 
 - use CloudRun for SPN producers (e.g. latex output producer ...)
+- Docker image(s) for usage scenarios: plain CloudRun ... or +plugins:
+- Producer / Output "plugins":
+  - markdown2latex converter ... whats its name? integrate...
+  - add hugo!! (support remote template source? fetch? add to image?)
+  - add dumb json output ... add jq examples ... script integration of api
+  - producer with support for mass- ... -e-mailing/
+  - artefacts into bucket -> notification new product ready in ui :)
