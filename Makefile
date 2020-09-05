@@ -46,7 +46,7 @@ coverage: clean
 	PROVIDER=MEMORY go test -coverprofile=coverage.out -coverpkg=./... -ldflags='-w -s $(LDFLAGS)' ./...
 	go tool cover -html=coverage.out
 
-deploy_gcp: test
+deploy_gcp: clean test
 	# TODO: Note CFN Name and executed function CAN differ!
 	gcloud functions deploy SPN --region=$(GCP_REGION) --runtime=$(GCP_GO_RUNTIME) \
  		--trigger-http --allow-unauthenticated --project=$(GCP_PROJECT) \
