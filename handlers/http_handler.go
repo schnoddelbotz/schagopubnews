@@ -1,3 +1,5 @@
+//go:generate esc -prefix assets/ -pkg assets -o ../assets/assets.go -private ../schagopubnews-ui-dist
+
 package handlers
 
 import (
