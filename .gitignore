@@ -1,3 +1,5 @@
 /build/spn
 /handlers/assets.go
 /schagopubnews-ui-dist
+.DS_Store
+/.idea/codeStyles
