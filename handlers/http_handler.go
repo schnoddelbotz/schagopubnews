@@ -1,5 +1,3 @@
-//go:generate esc -prefix ../schagopubnews-ui-dist/ -pkg handlers -o assets.go -private ../schagopubnews-ui-dist
-
 package handlers
 
 import (
@@ -69,7 +67,7 @@ func (s *server) tokenHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// verify user/pass, should yield firestore-, bucket-, and spn session tokens
-	if request.Username != "1" || request.Password != "2" {
+	if request.Username != "popeye" || request.Password != "spin@t" {
 		time.Sleep(1 * time.Second)
 		http.Error(w, `{"error":"bad credentials"}`, 401)
 		return

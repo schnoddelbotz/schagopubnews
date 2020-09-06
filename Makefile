@@ -7,10 +7,12 @@ LDFLAGS := -X github.com/schnoddelbotz/schagopubnews/cmd.AppVersion=$(VERSION) -
 
 ASSETS := handlers/assets.go
 GO_SOURCES := */*.go */*/*.go $(ASSETS)
+UI_SOURCE_ROOT := schagopubnews-ui/dist
+UI_SOURCES := $(wildcard $(UI_SOURCE_ROOT)/*)
 GCP_GO_RUNTIME := go113
-
 GCP_PROJECT := hacker-playground-254920
 GCP_REGION := europe-west1
+
 
 build: $(BINARY)
 
@@ -18,9 +20,14 @@ $(BINARY): $(GO_SOURCES)
 	# building schagopubnews
 	go build -v -o $(BINARY) -ldflags='-w -s $(LDFLAGS)' ./cli/spn
 
-$(ASSETS):
+$(UI_SOURCE_ROOT):
+	git clone git@github.com:schnoddelbotz/schagopubnews-ui.git
+	make -C schagopubnews-ui dist
+
+$(ASSETS): $(UI_SOURCE_ROOT)
+	echo $(UI_SOURCES)
 	test -n "$(shell which esc)" || go get -v -u github.com/mjibson/esc
-	go generate handlers/http_handler.go
+	esc -prefix schagopubnews-ui/dist/ -pkg handlers -o $(ASSETS) -private schagopubnews-ui/dist/
 
 all_local: clean test build
 
@@ -65,3 +72,7 @@ docker_run:
 
 clean:
 	rm -f $(BINARY) $(ASSETS) coverage*
+
+realclean: clean
+	-make -C schagopubnews-ui realclean
+	rm -rf schagopubnews-ui

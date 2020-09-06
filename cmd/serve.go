@@ -18,7 +18,7 @@ var serveCmd = &cobra.Command{
 expects GOOGLE_APPLICATION_CREDENTIALS for FireStore access.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		runtimeSettings := settings.ViperToRuntimeSettings()
-		fmt.Printf("serve called, using port : %s", runtimeSettings.Port)
+		fmt.Printf("SPN starting service on port : %s\n", runtimeSettings.Port)
 		handlers.Serve(runtimeSettings.Port)
 	},
 }
