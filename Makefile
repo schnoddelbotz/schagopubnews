@@ -7,12 +7,17 @@ LDFLAGS := -X github.com/schnoddelbotz/schagopubnews/cmd.AppVersion=$(VERSION) -
 
 ASSETS := handlers/assets.go
 GO_SOURCES := */*.go */*/*.go $(ASSETS)
-UI_SOURCE_ROOT := schagopubnews-ui/dist
-UI_SOURCES := $(wildcard $(UI_SOURCE_ROOT)/*)
+UI_SOURCE_ROOT := ../schagopubnews-ui
+UI_SOURCE_DIST := $(UI_SOURCE_ROOT)/dist
+UI_SOURCES := $(UI_SOURCE_DIST)/index.html $(wildcard $(UI_SOURCE_DIST)/assets/*)
 GCP_GO_RUNTIME := go113
 GCP_PROJECT := hacker-playground-254920
 GCP_REGION := europe-west1
 
+# TODO:
+# SPN_UI_URI=...
+# SPN_API_URI=...
+# pass to ember via on the fly adjusted index.html
 
 build: $(BINARY)
 
@@ -21,20 +26,21 @@ $(BINARY): $(GO_SOURCES)
 	go build -v -o $(BINARY) -ldflags='-w -s $(LDFLAGS)' ./cli/spn
 
 $(UI_SOURCE_ROOT):
-	git clone git@github.com:schnoddelbotz/schagopubnews-ui.git
-	make -C schagopubnews-ui dist
+	cd .. && git clone git@github.com:schnoddelbotz/schagopubnews-ui.git
 
-$(ASSETS): $(UI_SOURCE_ROOT)
-	echo $(UI_SOURCES)
+$(UI_SOURCE_DIST)/index.html: $(UI_SOURCE_ROOT)
+	# echo trying to build schagopubnews-ui in $(UI_SOURCE_ROOT)
+	make -C $(UI_SOURCE_ROOT) clean dist
+
+$(ASSETS): $(UI_SOURCES)
 	test -n "$(shell which esc)" || go get -v -u github.com/mjibson/esc
-	esc -prefix schagopubnews-ui/dist/ -pkg handlers -o $(ASSETS) -private schagopubnews-ui/dist/
+	esc -prefix $(UI_SOURCE_ROOT) -pkg handlers -o $(ASSETS) -private $(UI_SOURCE_ROOT)
 
 all_local: clean test build
 
 all_docker: clean test docker_image_prod
 
 release: all_docker docker_image_push
-
 
 test: $(GO_SOURCES)
 	# golint -set_exit_status ./...
@@ -72,7 +78,8 @@ docker_run:
 
 clean:
 	rm -f $(BINARY) $(ASSETS) coverage*
+	make -C $(UI_SOURCE_ROOT) clean
 
 realclean: clean
-	-make -C schagopubnews-ui realclean
+	-make -C $(UI_SOURCE_ROOT) realclean
 	rm -rf schagopubnews-ui

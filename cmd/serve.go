@@ -26,5 +26,12 @@ expects GOOGLE_APPLICATION_CREDENTIALS for FireStore access.`,
 func init() {
 	rootCmd.AddCommand(serveCmd)
 	serveCmd.Flags().StringP(settings.FlagPort, "p", "8080", "HTTP port to serve on")
+	// FIXME TODO
+	// serveCmd.Flags().StringP(settings.FlagUIBaseURI, "p", "8080", "Ember UI base URL (/SPN)")
+	// serveCmd.Flags().StringP(settings.FlagAPIBaseURI, "p", "8080", "CFn URL")
+	// use go template engine (?) to replace ember's index.html config stuff -- ember build per customer would suck big
+
 	_ = viper.BindPFlag(settings.FlagPort, serveCmd.Flags().Lookup("port"))
 }
+
+// offer base image including gcloud sdk --> ease gsutil ... stuff. how to give console access to bucket?
