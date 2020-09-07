@@ -9,7 +9,7 @@ ASSETS := handlers/assets.go
 GO_SOURCES := */*.go */*/*.go $(ASSETS)
 UI_SOURCE_ROOT := ../schagopubnews-ui
 UI_SOURCE_DIST := $(UI_SOURCE_ROOT)/dist
-UI_SOURCES := $(UI_SOURCE_DIST)/index.html $(wildcard $(UI_SOURCE_DIST)/assets/*)
+UI_SOURCES := $(UI_SOURCE_DIST)/index.html
 GCP_GO_RUNTIME := go113
 GCP_PROJECT := hacker-playground-254920
 GCP_REGION := europe-west1
@@ -34,7 +34,7 @@ $(UI_SOURCE_DIST)/index.html: $(UI_SOURCE_ROOT)
 
 $(ASSETS): $(UI_SOURCES)
 	test -n "$(shell which esc)" || go get -v -u github.com/mjibson/esc
-	esc -prefix $(UI_SOURCE_ROOT) -pkg handlers -o $(ASSETS) -private $(UI_SOURCE_ROOT)
+	esc -prefix $(UI_SOURCE_DIST) -pkg handlers -o $(ASSETS) -private $(UI_SOURCE_DIST)
 
 all_local: clean test build
 
@@ -78,8 +78,6 @@ docker_run:
 
 clean:
 	rm -f $(BINARY) $(ASSETS) coverage*
-	make -C $(UI_SOURCE_ROOT) clean
 
 realclean: clean
 	-make -C $(UI_SOURCE_ROOT) realclean
-	rm -rf schagopubnews-ui
