@@ -7,6 +7,7 @@ import (
 )
 
 // RuntimeSettings define anything Google related (project, service account, ...)
+// Also passed to go index.html tpl. May cause leaks...? clean up.
 type RuntimeSettings struct {
 	ProjectID           string
 	Region              string
@@ -14,6 +15,9 @@ type RuntimeSettings struct {
 	FireStoreCollection string
 	Port                string
 	Verbose             bool
+	RootURL             string
+	ApiURL              string
+	SPNVersion          string
 }
 
 const (
@@ -27,6 +31,9 @@ const (
 	FlagVerbose = "verbose"
 	// FlagPort is
 	FlagPort = "port"
+
+	FlagRootURL = "rootURL"
+	FlagAPIURL = "apiURL"
 
 	// FireStoreCollection is the name of our firestore collection (static for now)
 	FireStoreCollection = "schagopubnews"
@@ -44,6 +51,8 @@ func ViperToRuntimeSettings() RuntimeSettings {
 		Token:               viper.GetString(FlagToken),
 		Port:                viper.GetString(FlagPort),
 		Verbose:             viper.GetBool(FlagVerbose),
+		RootURL: viper.GetString(FlagRootURL),
+		ApiURL: viper.GetString(FlagAPIURL),
 		FireStoreCollection: FireStoreCollection,
 	}
 	return s

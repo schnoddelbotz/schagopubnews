@@ -1,35 +1,42 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"html/template"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
+
+	"github.com/schnoddelbotz/schagopubnews/settings"
 )
 
 type server struct {
+	RuntimeSettings settings.RuntimeSettings
 }
-
-var CFNMux = accessLogHandler(serveMux(""))
 
 // Schagopubnews is the CloudFunction entry point for SPN
 func Schagopubnews(w http.ResponseWriter, r *http.Request, env *Environment) {
 	log.Printf("Request for... %s", r.URL.Path)
+	CFNMux := accessLogHandler(serveMux("", env.RuntimeSettings)) // todo: move out of here, reuse.
 	CFNMux.ServeHTTP(w, r)
 }
 
 // Serve runs the SPN app on a local TCP port
-func Serve(httpPort string) {
-	log.Printf("Starting SPN server on port %s\n", httpPort)
-	LocalServerMux := accessLogHandler(serveMux("/SPN")) // accessLogHandler(appMux("/SPN"))
-	err := http.ListenAndServe(":"+httpPort, LocalServerMux)
+func Serve(runtimeSettings settings.RuntimeSettings) {
+	log.Printf("Starting SPN server on port %s\n", runtimeSettings.Port)
+	LocalServerMux := accessLogHandler(serveMux("/SPN", runtimeSettings)) // FIXME viper setting -- no trail?!!
+	err := http.ListenAndServe(":"+runtimeSettings.Port, LocalServerMux)
 	if err != nil {
 		log.Fatalf("Could not start server: %s", err)
 	}
 }
 
-func serveMux(muxPrefix string) *http.ServeMux {
+func serveMux(muxPrefix string, runtimeSettings settings.RuntimeSettings) *http.ServeMux {
 	srv := &server{}
+	srv.RuntimeSettings = runtimeSettings
 	mux := http.NewServeMux()
 	if muxPrefix == "" {
 		mux.Handle(muxPrefix+"/assets/", http.FileServer(_escFS(false)))
@@ -42,7 +49,29 @@ func serveMux(muxPrefix string) *http.ServeMux {
 }
 
 func (s *server) indexHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write(_escFSMustByte(false, "/index.html"))
+	// use default index.html template, which has /SPN/ in config for both URLs
+	if s.RuntimeSettings.RootURL == "/SPN/" && s.RuntimeSettings.ApiURL == "/SPN/" {
+		w.Write(_escFSMustByte(false, "/index.html"))
+		return
+	}
+	// otherwise, adjust URLs by using template; TODO: only fixes apiURL; index.html itself contains relative CSS/JS
+	w.Write(renderIndexTemplate(s.RuntimeSettings))
+}
+
+func renderIndexTemplate(runtimeSettings settings.RuntimeSettings) []byte {
+	buf := &bytes.Buffer{}
+	templateBinary := _escFSMustByte(false, "/index.html.tpl")
+	tpl, err := template.New("index").Parse(string(templateBinary))
+	runtimeSettings.ApiURL =  url.QueryEscape(fmt.Sprintf(`"apiURL":"%s"`, runtimeSettings.ApiURL))
+	runtimeSettings.RootURL = url.QueryEscape(fmt.Sprintf(`"rootURL":"%s"`, runtimeSettings.RootURL))
+	if err != nil {
+		log.Fatalf("Template parsing error: %v\n", err)
+	}
+	err = tpl.Execute(buf, runtimeSettings)
+	if err != nil {
+		log.Printf("Template execution error: %v\n", err)
+	}
+	return buf.Bytes()
 }
 
 type tokenRequest struct {
@@ -85,7 +114,7 @@ func (s *server) tokenHandler(w http.ResponseWriter, r *http.Request) {
 
 /*
 func authenticateAdminRequest(w http.ResponseWriter, clientToken string, env *Environment) bool {
-	if clientToken != env.GoogleSettings.Token {
+	if clientToken != env.RuntimeSettings.Token {
 		log.Printf("Permission denied for admin request - bad token: %s", clientToken)
 		http.Error(w, "FIXME This should be a JSON 401", 401)
 		return false
@@ -94,7 +123,7 @@ func authenticateAdminRequest(w http.ResponseWriter, clientToken string, env *En
 }
 
 func authenticateVMRequest(w http.ResponseWriter, clientToken string, env *Environment, vmID string) bool {
-	taskData, err := cloud.GetArticle(env.GoogleSettings.ProjectID, vmID)
+	taskData, err := cloud.GetArticle(env.RuntimeSettings.ProjectID, vmID)
 	if err != nil {
 		log.Printf("Error loading task: %s", err)
 		http.Error(w, err.Error(), 500)
@@ -135,8 +164,8 @@ func handleRun(w http.ResponseWriter, r *http.Request, env *Environment, vmID st
 	}
 	taskArguments := task.NewArticleArgumentsFromBytes(requestBody)
 	log.Printf("Writing task to FireStore: %+v", taskArguments)
-	task := cloud.StoreNewArticle(env.GoogleSettings.ProjectID, *taskArguments)
-	createOp, err := cloud.CreateVM(env.GoogleSettings, task)
+	task := cloud.StoreNewArticle(env.RuntimeSettings.ProjectID, *taskArguments)
+	createOp, err := cloud.CreateVM(env.RuntimeSettings, task)
 	if err != nil {
 		log.Printf("ERROR running ArticleArguments: %v", err)
 		http.Error(w, err.Error(), 500)
@@ -144,7 +173,7 @@ func handleRun(w http.ResponseWriter, r *http.Request, env *Environment, vmID st
 	}
 
 	log.Println("VM creation requested successfully, waiting for op...")
-	err = cloud.WaitForOperation(env.GoogleSettings.ProjectID, taskArguments.Zone, createOp.Name)
+	err = cloud.WaitForOperation(env.RuntimeSettings.ProjectID, taskArguments.Zone, createOp.Name)
 	if err != nil {
 		log.Printf("ERROR waiting for VM creation done status: %s", err.Error())
 		http.Error(w, err.Error(), 500)
@@ -152,7 +181,7 @@ func handleRun(w http.ResponseWriter, r *http.Request, env *Environment, vmID st
 	}
 
 	log.Printf("Saving GCE InstanceID to FireStore: %s => %d", vmID, createOp.TargetId)
-	err = cloud.SetArticleInstanceId(env.GoogleSettings.ProjectID, vmID, createOp.TargetId)
+	err = cloud.SetArticleInstanceId(env.RuntimeSettings.ProjectID, vmID, createOp.TargetId)
 	if err != nil {
 		log.Printf("ARGH!!! Could not update instanceID in FireStore: %s", err)
 	}
@@ -168,7 +197,7 @@ func handleRun(w http.ResponseWriter, r *http.Request, env *Environment, vmID st
 
 func handleStatusGet(w http.ResponseWriter, env *Environment, vmID string) {
 	log.Printf("Serving status for vm %s", vmID)
-	task, err := cloud.GetArticle(env.GoogleSettings.ProjectID, vmID)
+	task, err := cloud.GetArticle(env.RuntimeSettings.ProjectID, vmID)
 	if err != nil {
 		log.Printf("Error handling task status get requests vmid=%s: %s", vmID, err)
 		http.Error(w, err.Error(), 500)
@@ -181,7 +210,7 @@ func handleStatusGet(w http.ResponseWriter, env *Environment, vmID string) {
 
 func handleDelete(w http.ResponseWriter, env *Environment, vmID string, exitCodeString string, zone string) {
 	log.Printf("Handling DELETE request form VMID %s (in %s) with exitCode %s", vmID, zone, exitCodeString)
-	err := cloud.DeleteInstanceByName(env.GoogleSettings, vmID, zone)
+	err := cloud.DeleteInstanceByName(env.RuntimeSettings, vmID, zone)
 	if err != nil {
 		log.Printf("Error on DeleteInstanceByName(..., %s): %s", vmID, err)
 		http.Error(w, err.Error(), 500)
@@ -193,7 +222,7 @@ func handleDelete(w http.ResponseWriter, env *Environment, vmID string, exitCode
 		http.Error(w, err.Error(), 500)
 		return
 	}
-	err = cloud.UpdateArticleStatus(env.GoogleSettings.ProjectID, vmID, task.ArticleStatusDone, exitCode)
+	err = cloud.UpdateArticleStatus(env.RuntimeSettings.ProjectID, vmID, task.ArticleStatusDone, exitCode)
 	if err != nil {
 		log.Printf("Error on DeleteInstanceByName(..., %s): Unable to update FireStore after successful VM deletion %s", vmID, err)
 		http.Error(w, err.Error(), 500)
@@ -215,7 +244,7 @@ func handleContainer(w http.ResponseWriter, r *http.Request, env *Environment, v
 		http.Error(w, err.Error(), 500)
 		return
 	}
-	err = cloud.SetArticleContainerID(env.GoogleSettings.ProjectID, vmID, string(containerID))
+	err = cloud.SetArticleContainerID(env.RuntimeSettings.ProjectID, vmID, string(containerID))
 	if err != nil {
 		log.Printf("ERROR: Failed to update containerID of vm %s to `%s`", vmID, containerID)
 		http.Error(w, err.Error(), 500)

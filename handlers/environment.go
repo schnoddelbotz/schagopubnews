@@ -11,22 +11,22 @@ import (
 
 // Environment enables resource sharing between CFN requests, holds env settings + svc conns
 type Environment struct {
-	GoogleSettings  settings.RuntimeSettings
+	RuntimeSettings settings.RuntimeSettings
 	Context         context.Context
 	FireStoreClient *firestore.Client
 }
 
 // NewEnvironment creates google service clients as requested
-func NewEnvironment(googleSettings settings.RuntimeSettings, withFireStoreClient bool) *Environment {
-	var dataStoreClient *firestore.Client
+func NewEnvironment(runtimeSettings settings.RuntimeSettings, withFireStoreClient bool) *Environment {
+	var firestoreClient *firestore.Client
 
 	if withFireStoreClient {
-		dataStoreClient = cloud.NewFireStoreClient(context.Background(), googleSettings.ProjectID)
+		firestoreClient = cloud.NewFireStoreClient(context.Background(), runtimeSettings.ProjectID)
 	}
 
 	return &Environment{
-		GoogleSettings:  googleSettings,
+		RuntimeSettings: runtimeSettings,
 		Context:         context.Background(),
-		FireStoreClient: dataStoreClient,
+		FireStoreClient: firestoreClient,
 	}
 }

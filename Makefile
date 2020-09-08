@@ -33,6 +33,9 @@ $(UI_SOURCE_DIST)/index.html: $(UI_SOURCE_ROOT)
 	make -C $(UI_SOURCE_ROOT) clean dist
 
 $(ASSETS): $(UI_SOURCES)
+	sed -e 's@%22rootURL%22%3A%22%2FSPN%2F%22@{{.RootURL}}@' \
+		-e 's@%22apiURL%22%3A%22%2FSPN%2F%22@{{.ApiURL}}@' \
+		$(UI_SOURCE_DIST)/index.html > $(UI_SOURCE_DIST)/index.html.tpl
 	test -n "$(shell which esc)" || go get -v -u github.com/mjibson/esc
 	esc -prefix $(UI_SOURCE_DIST) -pkg handlers -o $(ASSETS) -private $(UI_SOURCE_DIST)
 
