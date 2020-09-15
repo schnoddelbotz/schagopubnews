@@ -38,4 +38,13 @@ Serverless Cms, Headleass Application, (written in) GO, (to) PUBlish news!
 
 - `Access-Control-Allow-Origin: *.x4e.ch`
   ^ make controllable via `spn` cli flag / env var /deployment var
-- https://gist.github.com/the42/1956518 -- gz + cache ttl!!
+- https://gist.github.com/the42/1956518 -- gz + cache ttl!!; gz done cache not yet
+- https://firebase.google.com/docs/auth/admin/create-custom-tokens#go
+- https://firebase.google.com/docs/database/rest/auth
+- https://firebase.google.com/docs/firestore/extend-with-functions
+- https://firebase.google.com/docs/firestore/security/get-started
+
+- https://cloud.google.com/sdk/gcloud/reference/beta/emulators/firestore/
+- new google project; firestore -> security rules -> enable firebase
+- https://console.cloud.google.com/marketplace/details/google-cloud-platform/firebase-authentication
+- https://firebase.google.com/docs/cli?authuser=1#install-cli-mac-linux

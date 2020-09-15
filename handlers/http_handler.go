@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -10,6 +11,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	firebase "firebase.google.com/go/v4"
 
 	"github.com/schnoddelbotz/schagopubnews/settings"
 )
@@ -129,8 +132,28 @@ func (s *server) tokenHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"bad credentials"}`, 401)
 		return
 	}
+	/// OUTSOURCE client usage/creation!
+	//  https://firebase.google.com/docs/auth/admin/create-custom-tokens#go
+	//  https://godoc.org/cloud.google.com/go/firestore
+	//  https://godoc.org/firebase.google.com/go
+	app, err := firebase.NewApp(context.Background(), nil)
+	if err != nil {
+		log.Fatalf("error initializing app: %v\n", err)
+	}
+	client, err := app.Auth(context.Background())
+	if err != nil {
+		log.Fatalf("error getting Auth client: %v\n", err)
+	}
+
+	token, err := client.CustomToken(context.Background(), "some-uid")
+	if err != nil {
+		log.Fatalf("error minting custom token: %v\n", err)
+	}
+
+	log.Printf("Got custom token: %v\n", token)
+
 	response := tokenResponse{
-		AccessToken: "whatever",
+		AccessToken: token,
 	}
 
 	responseBody, _ := json.Marshal(response)
