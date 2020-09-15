@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/schnoddelbotz/schagopubnews/settings"
@@ -20,14 +21,14 @@ type server struct {
 // Schagopubnews is the CloudFunction entry point for SPN
 func Schagopubnews(w http.ResponseWriter, r *http.Request, env *Environment) {
 	log.Printf("Request for... %s", r.URL.Path)
-	CFNMux := accessLogHandler(serveMux("", env.RuntimeSettings)) // todo: move out of here, reuse.
+	CFNMux := contentNegotiationHandler(accessLogHandler(serveMux("", env.RuntimeSettings))) // todo: move out of here, reuse.
 	CFNMux.ServeHTTP(w, r)
 }
 
 // Serve runs the SPN app on a local TCP port
 func Serve(runtimeSettings settings.RuntimeSettings) {
 	log.Printf("Starting SPN server on port %s\n", runtimeSettings.Port)
-	LocalServerMux := accessLogHandler(serveMux("/SPN", runtimeSettings)) // FIXME viper setting -- no trail?!!
+	LocalServerMux := contentNegotiationHandler(accessLogHandler(serveMux("/SPN", runtimeSettings))) // FIXME viper setting -- no trail?!!
 	err := http.ListenAndServe(":"+runtimeSettings.Port, LocalServerMux)
 	if err != nil {
 		log.Fatalf("Could not start server: %s", err)
@@ -48,6 +49,33 @@ func serveMux(muxPrefix string, runtimeSettings settings.RuntimeSettings) *http.
 	return mux
 }
 
+func contentNegotiationHandler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			// log.Printf("cNeg NO ZIP support on client FOR: %s", r.URL.Path)
+			h.ServeHTTP(w, r)
+			return
+		}
+		if strings.HasSuffix(r.URL.Path, ".js") {
+			r.URL.Path = r.URL.Path + ".gz"
+			w.Header().Set("Content-Type", "text/javascript;charset=UTF-8")
+			w.Header().Set("Content-Encoding", "gzip")
+			h.ServeHTTP(w, r)
+			return
+		}
+		if strings.HasSuffix(r.URL.Path, ".css") {
+			r.URL.Path = r.URL.Path + ".gz"
+			w.Header().Set("Content-Encoding", "gzip")
+			w.Header().Set("Content-Type", "text/css;charset=UTF-8")
+			h.ServeHTTP(w, r)
+			return
+		}
+		// log.Printf("NO GZIP FOR: %s", r.URL.Path)
+		// DEFAULT:
+		h.ServeHTTP(w, r)
+	})
+}
+
 func (s *server) indexHandler(w http.ResponseWriter, r *http.Request) {
 	// use default index.html template, which has /SPN/ in config for both URLs
 	if s.RuntimeSettings.RootURL == "/SPN/" && s.RuntimeSettings.ApiURL == "/SPN/" {
@@ -62,7 +90,7 @@ func renderIndexTemplate(runtimeSettings settings.RuntimeSettings) []byte {
 	buf := &bytes.Buffer{}
 	templateBinary := _escFSMustByte(false, "/index.html.tpl")
 	tpl, err := template.New("index").Parse(string(templateBinary))
-	runtimeSettings.ApiURL =  url.QueryEscape(fmt.Sprintf(`"apiURL":"%s"`, runtimeSettings.ApiURL))
+	runtimeSettings.ApiURL = url.QueryEscape(fmt.Sprintf(`"apiURL":"%s"`, runtimeSettings.ApiURL))
 	runtimeSettings.RootURL = url.QueryEscape(fmt.Sprintf(`"rootURL":"%s"`, runtimeSettings.RootURL))
 	if err != nil {
 		log.Fatalf("Template parsing error: %v\n", err)

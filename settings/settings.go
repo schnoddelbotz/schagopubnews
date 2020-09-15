@@ -33,7 +33,7 @@ const (
 	FlagPort = "port"
 
 	FlagRootURL = "rootURL"
-	FlagAPIURL = "apiURL"
+	FlagAPIURL  = "apiURL"
 
 	// FireStoreCollection is the name of our firestore collection (static for now)
 	FireStoreCollection = "schagopubnews"
@@ -51,8 +51,8 @@ func ViperToRuntimeSettings() RuntimeSettings {
 		Token:               viper.GetString(FlagToken),
 		Port:                viper.GetString(FlagPort),
 		Verbose:             viper.GetBool(FlagVerbose),
-		RootURL: viper.GetString(FlagRootURL),
-		ApiURL: viper.GetString(FlagAPIURL),
+		RootURL:             viper.GetString(FlagRootURL),
+		ApiURL:              viper.GetString(FlagAPIURL),
 		FireStoreCollection: FireStoreCollection,
 	}
 	return s

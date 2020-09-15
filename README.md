@@ -32,3 +32,10 @@ Serverless Cms, Headleass Application, (written in) GO, (to) PUBlish news!
   - add dumb json output ... add jq examples ... script integration of api
   - producer with support for mass- ... -e-mailing/
   - artefacts into bucket -> notification new product ready in ui :)
+
+
+# todo/issues ...
+
+- `Access-Control-Allow-Origin: *.x4e.ch`
+  ^ make controllable via `spn` cli flag / env var /deployment var
+- https://gist.github.com/the42/1956518 -- gz + cache ttl!!
